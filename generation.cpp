@@ -175,13 +175,6 @@ void Generation::deserialize(const std::string& file)
 
 		ln++;
 	}
-
-	for (int i = 0; i < this->networks.size(); i++)
-		if (this->networks[i] == nullptr)
-		{
-			std::cout << std::endl;
-			std::cout << i << std::endl;
-		}
 }
 
 void Generation::sortByEvaluation(std::vector<unsigned int>& sorted)
