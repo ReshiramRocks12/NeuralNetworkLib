@@ -157,9 +157,9 @@ void NeuralNetwork::deserialize(const std::string& input)
 
 		this->layers.push_back(std::make_shared<Layer>(topology[i], this->layers.back(), false));
 
-		for (int n = 0; n < topology[i]; n++)
+		for (unsigned int n = 0; n < topology[i]; n++)
 		{
-			for (int w = 0; w < topology[static_cast<size_t>(i - 1)]; w++)
+			for (unsigned int w = 0; w < topology[static_cast<size_t>(i - 1)]; w++)
 			{
 				strStream >> dToken;
 				this->layers.back()->neurons[n]->weightsIn[w] = dToken;

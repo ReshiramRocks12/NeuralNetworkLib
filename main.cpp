@@ -6,7 +6,7 @@
 
 int main()
 {
-	Generation gen(10, { 11, 8, 4 });
+	Generation gen(100, { 10, 8, 4 });
 	gen.serialize("./Test");
 	
 	Generation genCopy;

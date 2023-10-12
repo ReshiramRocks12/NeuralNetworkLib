@@ -119,10 +119,16 @@ void Generation::serialize(const std::string& folder, bool sort)
 
 	if (sortedIndices.size() > 0)
 		for (int i = 0; i < sortedIndices.size(); i++)
+		{
+			outputStream << sortedIndices[i] << " ";
 			this->networks[sortedIndices[i]]->serialize(outputStream);
+		}
 	else
 		for (int i = 0; i < this->networks.size(); i++)
+		{
+			outputStream << i << " ";
 			this->networks[i]->serialize(outputStream);
+		}
 
 	outputStream.close();
 }
@@ -136,7 +142,7 @@ void Generation::deserialize(const std::string& file)
 
 	std::string line;
 	unsigned int ln = 2;
-	unsigned int genNum, genSize, nBatches;
+	unsigned int genNum, genSize, nBatches, index;
 
 	std::getline(inputStream, line);
 	std::stringstream strStream(line);
@@ -151,14 +157,16 @@ void Generation::deserialize(const std::string& file)
 	if (strStream.fail())
 		throw std::runtime_error("Invalid syntax at line 1");
 
+	this->networks = std::vector<std::shared_ptr<NeuralNetwork>>(genSize);
+	
 	for (unsigned int i = 0; i < genSize; i++)
 	{
-		std::getline(inputStream, line);
-
 		try
 		{
-			this->networks.push_back(std::make_shared<NeuralNetwork>(std::vector<unsigned int>({1, 1})));
-			this->networks.back()->deserialize(line);
+			inputStream >> index;
+			std::getline(inputStream, line);
+			this->networks[index] = std::make_shared<NeuralNetwork>(std::vector<unsigned int>({1, 1}));
+			this->networks[index]->deserialize(line);
 		}
 		catch (std::runtime_error& e)
 		{
@@ -167,6 +175,13 @@ void Generation::deserialize(const std::string& file)
 
 		ln++;
 	}
+
+	for (int i = 0; i < this->networks.size(); i++)
+		if (this->networks[i] == nullptr)
+		{
+			std::cout << std::endl;
+			std::cout << i << std::endl;
+		}
 }
 
 void Generation::sortByEvaluation(std::vector<unsigned int>& sorted)
