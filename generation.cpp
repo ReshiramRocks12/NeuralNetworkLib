@@ -115,7 +115,7 @@ void Generation::serialize(const std::string& folder, bool sort)
 	if (sort)
 		this->sortByEvaluation(sortedIndices);
 
-	outputStream << this->generationNum << " " << this->networks.size() << " " << this->nBatches << std::endl;
+	outputStream << this->generationNum << " " << this->networks.size() << " " << this->nBatches << " " << NeuralNetwork::getSeed() << std::endl;
 
 	if (sortedIndices.size() > 0)
 		for (int i = 0; i < sortedIndices.size(); i++)
@@ -143,6 +143,7 @@ void Generation::deserialize(const std::string& file)
 	std::string line;
 	unsigned int ln = 2;
 	unsigned int genNum, genSize, nBatches, index;
+	time_t seed;
 
 	std::getline(inputStream, line);
 	std::stringstream strStream(line);
@@ -150,9 +151,11 @@ void Generation::deserialize(const std::string& file)
 	strStream >> genNum;
 	strStream >> genSize;
 	strStream >> nBatches;
+	strStream >> seed;
 
 	this->generationNum = genNum;
 	this->nBatches = nBatches;
+	NeuralNetwork::setSeed(seed);
 
 	if (strStream.fail())
 		throw std::runtime_error("Invalid syntax at line 1");

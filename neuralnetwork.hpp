@@ -57,6 +57,8 @@ protected:
 
 private:
 	static std::mt19937& getGenerator();
+	static time_t& getSeed();
+	static void setSeed(const time_t& s);
 	void serialize(std::ofstream& outputStream);
 	void deserialize(const std::string& input);
 
