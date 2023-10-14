@@ -16,6 +16,7 @@ public:
 		SOFTMAX_ACTIVATION
 	};
 
+	NeuralNetwork();
 	NeuralNetwork(const std::vector<unsigned int>& topology, NeuralNetwork::ActivationFunction hiddenActivation = RELU_ACTIVATION, NeuralNetwork::ActivationFunction outputActivation = SOFTMAX_ACTIVATION);
 	NeuralNetwork(const NeuralNetwork& neuralNetwork);
 

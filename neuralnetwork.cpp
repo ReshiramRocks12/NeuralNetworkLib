@@ -2,8 +2,10 @@
 
 #include <sstream>
 
-static time_t seed = std::time(NULL);
-static std::mt19937 generator(static_cast<unsigned int>(seed));
+time_t seed = std::time(NULL);
+std::mt19937 generator(static_cast<unsigned int>(seed));
+
+NeuralNetwork::NeuralNetwork() : topology({}), evaluation(0.0), hiddenActivation(NeuralNetwork::ActivationFunction::RELU_ACTIVATION), outputActivation(NeuralNetwork::ActivationFunction::SOFTMAX_ACTIVATION) {}
 
 NeuralNetwork::NeuralNetwork(const std::vector<unsigned int>& topology, NeuralNetwork::ActivationFunction hiddenActivation, NeuralNetwork::ActivationFunction outputActivation) : topology(topology), evaluation(0.0), hiddenActivation(hiddenActivation), outputActivation(outputActivation)
 {
@@ -105,7 +107,7 @@ time_t& NeuralNetwork::getSeed()
 void NeuralNetwork::setSeed(const time_t& s)
 {
 	seed = s;
-	generator = std::mt19937(static_cast<unsigned int>(seed));
+	generator = std::mt19937(static_cast<unsigned int>(s));
 }
 
 void NeuralNetwork::serialize(std::ofstream& outputStream)

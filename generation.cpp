@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <fstream>
+#include <iomanip>
 #include <sstream>
 #include <random>
 
@@ -38,6 +39,7 @@ std::shared_ptr<Generation> Generation::createNewGeneration(double mutationRate,
 		break;
 	}
 
+	NeuralNetwork::setSeed(NeuralNetwork::getSeed() + 1);
 	std::shared_ptr<Generation> generation = std::make_shared<Generation>();
 	generation->generationNum = this->generationNum + 1;
 	generation->nBatches = this->nBatches;
@@ -114,7 +116,8 @@ void Generation::serialize(const std::string& folder, bool sort)
 
 	if (sort)
 		this->sortByEvaluation(sortedIndices);
-
+	
+	outputStream << std::setprecision(17);
 	outputStream << this->generationNum << " " << this->networks.size() << " " << this->nBatches << " " << NeuralNetwork::getSeed() << std::endl;
 
 	if (sortedIndices.size() > 0)
@@ -168,7 +171,7 @@ void Generation::deserialize(const std::string& file)
 		{
 			inputStream >> index;
 			std::getline(inputStream, line);
-			this->networks[index] = std::make_shared<NeuralNetwork>(std::vector<unsigned int>({1, 1}));
+			this->networks[index] = std::make_shared<NeuralNetwork>();
 			this->networks[index]->deserialize(line);
 		}
 		catch (std::runtime_error& e)

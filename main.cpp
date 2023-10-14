@@ -8,7 +8,8 @@ int main()
 {
 	Generation gen(100, { 10, 8, 4 });
 	gen.serialize("./Test");
-	
+	gen.createNewGeneration()->serialize("./Test");
+
 	Generation genCopy;
 
 	try
@@ -21,6 +22,7 @@ int main()
 	}
 
 	genCopy.serialize("./Test2");
+	genCopy.createNewGeneration()->serialize("./Test2");
 
 	return 0;
 }
