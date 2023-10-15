@@ -3,42 +3,48 @@
 #include <algorithm>
 #include <fstream>
 #include <iomanip>
+#include <numeric>
 #include <sstream>
 #include <random>
 
 Generation::Generation(unsigned int nNetworks, std::vector<unsigned int> topology, unsigned int nBatches, NeuralNetwork::ActivationFunction hiddenActivation, NeuralNetwork::ActivationFunction outputActivation) : generationNum(0), nBatches(nBatches)
 {
+	this->networks.reserve(nNetworks);
+
 	for (unsigned int i = 0; i < nNetworks; i++)
 		this->networks.push_back(std::make_shared<NeuralNetwork>(topology, hiddenActivation, outputActivation));
 }
 
 Generation::Generation() : generationNum(0), nBatches(0) {}
 
-std::shared_ptr<Generation> Generation::createNewGeneration(double mutationRate, double mutationScale, Generation::SelectionAlgoritm selectionAlgo, double selectionPercent, double kPercent, Generation::CrossoverAlgorithm crossoverAlgo, double crossOverRate, unsigned int kPoints)
+std::shared_ptr<Generation> Generation::createNewGeneration(double mutationChance, double mutationScale, Generation::SelectionAlgoritm selectionAlgo, double selectionPercent, double kPercent, double p, Generation::CrossoverAlgorithm crossoverAlgo, double crossOverRate, unsigned int kPoints)
 {
 	if (this->networks.size() == 0)
 		throw std::runtime_error("Generation is empty");
+	if (mutationChance < 0.0 || mutationChance > 1.0)
+		throw std::runtime_error("Mutation chance must be in the range of 0 to 1");
 	if (selectionPercent < 0.0 || selectionPercent > 1.0)
 		throw std::runtime_error("Selection percent must be in the range of 0 to 1");
 	if (kPercent < 0.0 || kPercent > 1.0)
 		throw std::runtime_error("K percent must be in the range of 0 to 1");
 
-	std::vector<unsigned int> sortedIndices;
+	std::vector<unsigned int> sortedIndices(this->networks.size());
 	std::vector<unsigned int> selectedIndices;
 
+	std::iota(sortedIndices.begin(), sortedIndices.end(), 0);
 	this->sortByEvaluation(sortedIndices);
+	selectedIndices.reserve(static_cast<size_t>(this->networks.size() * selectionPercent));
 
 	switch (selectionAlgo)
 	{
 	case FITNESS_PROPORTIONATE_SELECTION:
-		selectedIndices = fitnessProportionateSelection(selectionPercent);
+		fitnessProportionateSelection(selectionPercent, selectedIndices);
 		break;
 	case TOURNAMENT_SELECTION:
-		selectedIndices = tournamentSelection(selectionPercent, kPercent);
+		tournamentSelection(selectionPercent, kPercent, 1.0, selectedIndices);
 		break;
 	case PROBABILISTIC_TOURNAMENT_SELECTION:
-		// TODO: Implement
-		throw "Not Implemented";
+		tournamentSelection(selectionPercent, kPercent, p, selectedIndices);
 		break;
 	case ELITISM:
 		for (unsigned int i = 0; i < sortedIndices.size() * selectionPercent; i++)
@@ -73,12 +79,10 @@ std::shared_ptr<Generation> Generation::createNewGeneration(double mutationRate,
 	switch (crossoverAlgo)
 	{
 	case SINGLE_POINT_CROSSOVER:
-		// TODO: Implement
-		throw "Not Implemented";
+		generation->kPointCrossover(1);
 		break;
 	case K_POINT_CROSSOVER:
-		// TODO: Implement
-		throw "Not Implemented";
+		generation->kPointCrossover(kPoints);
 		break;
 	case UNIFORM_CROSSOVER:
 		generation->uniformCrossover(crossOverRate);
@@ -86,7 +90,7 @@ std::shared_ptr<Generation> Generation::createNewGeneration(double mutationRate,
 	}
 
 	for (std::shared_ptr<NeuralNetwork>& n : generation->networks)
-		n->mutate(mutationRate, mutationScale);
+		n->mutate(mutationChance, mutationScale);
 
 	return generation;
 }
@@ -103,7 +107,7 @@ std::vector<std::shared_ptr<NeuralNetwork>> Generation::getBatch(unsigned int ba
 
 	unsigned int batchSize = static_cast<unsigned int>(this->networks.size() / nBatches);
 
-	if ((static_cast<unsigned long long>(batchNum + 2)) * batchSize > this->networks.size())
+	if ((static_cast<size_t>(batchNum + 2)) * batchSize > this->networks.size())
 		return std::vector<std::shared_ptr<NeuralNetwork>>(this->networks.begin() + (batchNum * batchSize), this->networks.end());
 
 	return std::vector<std::shared_ptr<NeuralNetwork>>(this->networks.begin() + (batchNum * batchSize), this->networks.begin() + ((batchNum + 1) * batchSize));
@@ -192,20 +196,15 @@ void Generation::deserialize(const std::string& file)
 
 void Generation::sortByEvaluation(std::vector<unsigned int>& sorted)
 {
-	for (unsigned int i = 0; i < this->networks.size(); i++)
-		sorted.push_back(i);
-
 	std::sort(sorted.begin(), sorted.end(), [this](unsigned int a, unsigned int b)
 	{
 		return this->networks[a]->getEvaluation() > this->networks[b]->getEvaluation();
 	});
 }
 
-std::vector<unsigned int> Generation::fitnessProportionateSelection(double selectionPercent)
+void Generation::fitnessProportionateSelection(double selectionPercent, std::vector<unsigned int>& selectedIndexes)
 {
 	unsigned int selectionNum = static_cast<unsigned int>(this->networks.size() * selectionPercent);
-	std::vector<unsigned int> selectedIndexes;
-
 	double totalEval = 0.0;
 
 	for (std::shared_ptr<NeuralNetwork>& network : this->networks)
@@ -230,70 +229,92 @@ std::vector<unsigned int> Generation::fitnessProportionateSelection(double selec
 				}
 		}
 	}
-
-	return selectedIndexes;
 }
 
-std::vector<unsigned int> Generation::tournamentSelection(double selectionPercent, double kPercent)
+void Generation::tournamentSelection(double selectionPercent, double kPercent, double p, std::vector<unsigned int>& selectedIndexes)
 {
 	unsigned int selectionNum = static_cast<unsigned int>(this->networks.size() * selectionPercent);
-	std::vector<unsigned int> selectedIndexes;
 	unsigned int k = static_cast<unsigned int>(this->networks.size() * kPercent);
 	std::vector<unsigned int> tournamentIndexes;
+	tournamentIndexes.reserve(k);
 
-	std::uniform_int_distribution<unsigned int> distribution(0, this->networks.size());
+	std::uniform_int_distribution<unsigned int> distribution1(0, this->networks.size());
+	std::uniform_real_distribution<double> distribution2(0.0, 1.0);
 	int si;
 
 	while (selectedIndexes.size() < selectionNum)
 	{
 		tournamentIndexes.clear();
 
-		for (int i = 0; i < k; i++)
+		while (tournamentIndexes.size() < k)
 		{
-			si = distribution(NeuralNetwork::getGenerator());
+			si = distribution1(NeuralNetwork::getGenerator());
 
 			if (std::find(selectedIndexes.begin(), selectedIndexes.end(), si) == selectedIndexes.end() && std::find(tournamentIndexes.begin(), tournamentIndexes.end(), si) == tournamentIndexes.end())
 				tournamentIndexes.push_back(si);
-			else
-				i--;
 		}
 
-		std::sort(tournamentIndexes.begin(), tournamentIndexes.end(), [this](unsigned int a, unsigned int b)
-		{
-			return this->networks[a]->getEvaluation() > this->networks[b]->getEvaluation();
-		});
+		sortByEvaluation(tournamentIndexes);
 
-		selectedIndexes.push_back(tournamentIndexes[0]);
+		for (int i = 0; i < tournamentIndexes.size(); i++)
+			if (distribution2(NeuralNetwork::getGenerator()) < p * std::pow(1 - p, i))
+				selectedIndexes.push_back(tournamentIndexes[i]);
 	}
-
-	return selectedIndexes;
 }
 
 void Generation::uniformCrossover(double crossOverRate)
 {
 	std::uniform_real_distribution<double> distribution(0.0, 1.0);
+	
+	for (size_t i = 1; i < this->networks.size(); i += 2)
+		for (int l = 0; l < this->networks[i]->layers.size(); l++)
+			for (int n = 0; n < this->networks[i]->layers[l]->neurons.size(); n++)
+			{
+				for (int w = 0; w < this->networks[i]->layers[l]->neurons[n]->weightsIn.size(); w++)
+					if (distribution(NeuralNetwork::getGenerator()) < crossOverRate)
+						std::swap(this->networks[i]->layers[l]->neurons[n]->weightsIn[w], this->networks[i - 1]->layers[l]->neurons[n]->weightsIn[w]);
 
-	double temp;
+				if (distribution(NeuralNetwork::getGenerator()) < crossOverRate)
+					std::swap(this->networks[i]->layers[l]->neurons[n]->bias, this->networks[i - 1]->layers[l]->neurons[n]->bias);
+			}
+}
 
-	for (int i = 1; i < this->networks.size(); i += 2)
+void Generation::kPointCrossover(unsigned int k)
+{
+	unsigned int total = 1;
+	size_t iC = 0;
+	bool crossover = false;
+
+	for (size_t i = 1; i < this->networks[0]->topology.size(); i++)
+		total += this->networks[0]->topology[i - 1] * this->networks[0]->topology[i] + this->networks[0]->topology[i];
+
+	std::vector<unsigned int> kIndexes(total);
+	std::iota(kIndexes.begin(), kIndexes.end(), 0);
+	std::shuffle(kIndexes.begin(), kIndexes.end(), NeuralNetwork::getGenerator());
+	kIndexes.resize(k);
+	std::sort(kIndexes.begin(), kIndexes.end());
+
+	for (size_t i = 1; i < this->networks.size(); i += 2)
 		for (int l = 0; l < this->networks[i]->layers.size(); l++)
 			for (int n = 0; n < this->networks[i]->layers[l]->neurons.size(); n++)
 			{
 				for (int w = 0; w < this->networks[i]->layers[l]->neurons[n]->weightsIn.size(); w++)
 				{
-					if (distribution(NeuralNetwork::getGenerator()) < crossOverRate)
-					{
-						temp = this->networks[i]->layers[l]->neurons[n]->weightsIn[w];
-						this->networks[i]->layers[l]->neurons[n]->weightsIn[w] = this->networks[static_cast<size_t>(i - 1)]->layers[l]->neurons[n]->weightsIn[w];
-						this->networks[static_cast<size_t>(i - 1)]->layers[l]->neurons[n]->weightsIn[w] = temp;
-					}
+					if (std::find(kIndexes.begin(), kIndexes.end(), iC) != kIndexes.end())
+						crossover = !crossover;
+
+					if (crossover)
+						std::swap(this->networks[i]->layers[l]->neurons[n]->weightsIn[w], this->networks[i - 1]->layers[l]->neurons[n]->weightsIn[w]);
+
+					iC++;
 				}
 
-				if (distribution(NeuralNetwork::getGenerator()) < crossOverRate)
-				{
-					temp = this->networks[i]->layers[l]->neurons[n]->bias;
-					this->networks[i]->layers[l]->neurons[n]->bias = this->networks[static_cast<size_t>(i - 1)]->layers[l]->neurons[n]->bias;
-					this->networks[static_cast<size_t>(i - 1)]->layers[l]->neurons[n]->bias = temp;
-				}
+				if (std::find(kIndexes.begin(), kIndexes.end(), iC) != kIndexes.end())
+					crossover = !crossover;
+
+				if (crossover)
+					std::swap(this->networks[i]->layers[l]->neurons[n]->bias, this->networks[i - 1]->layers[l]->neurons[n]->bias);
+
+				iC++;
 			}
 }

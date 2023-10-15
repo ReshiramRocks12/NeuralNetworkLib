@@ -189,12 +189,16 @@ void NeuralNetwork::deserialize(const std::string& input)
 
 NeuralNetwork::Layer::Layer(unsigned int numberOfNeurons) : previousLayer(nullptr)
 {
+	this->neurons.reserve(numberOfNeurons);
+
 	for (unsigned int i = 0; i < numberOfNeurons; i++)
 		this->neurons.push_back(std::make_shared<Neuron>());
 }
 
 NeuralNetwork::Layer::Layer(unsigned int numberOfNeurons, std::shared_ptr<Layer> previous, bool initalizeWeights)
 {
+	this->neurons.reserve(numberOfNeurons);
+
 	for (unsigned int i = 0; i < numberOfNeurons; i++)
 		this->neurons.push_back(std::make_shared<Neuron>(previous->neurons.size(), initalizeWeights));
 
@@ -238,6 +242,8 @@ NeuralNetwork::Neuron::Neuron(unsigned int connectionsIn, bool initializeWeights
 {
 	// Xavier Weight Initialisation
 	std::uniform_real_distribution<double> distribution(0.0 - (1.0 / std::sqrt(connectionsIn)), 1.0 / std::sqrt(connectionsIn));
+
+	this->weightsIn.reserve(connectionsIn);
 
 	for (unsigned int i = 0; i < connectionsIn; i++)
 		if (initializeWeights)
