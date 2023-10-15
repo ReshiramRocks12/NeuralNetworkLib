@@ -8,6 +8,7 @@ Test/
 Test2/
 
 # User-specific files
+main.cpp
 *.rsuser
 *.suo
 *.user
