@@ -14,10 +14,14 @@ Generation::Generation(unsigned int nNetworks, std::vector<unsigned int> topolog
 
 Generation::Generation() : generationNum(0), nBatches(0) {}
 
-std::shared_ptr<Generation> Generation::createNewGeneration(double mutationRate, double mutationScale, Generation::SelectionAlgoritm selectionAlgo, double selectionPercent, Generation::CrossoverAlgorithm crossoverAlgo, double crossOverRate, unsigned int kPoints)
+std::shared_ptr<Generation> Generation::createNewGeneration(double mutationRate, double mutationScale, Generation::SelectionAlgoritm selectionAlgo, double selectionPercent, double kPercent, Generation::CrossoverAlgorithm crossoverAlgo, double crossOverRate, unsigned int kPoints)
 {
 	if (this->networks.size() == 0)
 		throw std::runtime_error("Generation is empty");
+	if (selectionPercent < 0.0 || selectionPercent > 1.0)
+		throw std::runtime_error("Selection percent must be in the range of 0 to 1");
+	if (kPercent < 0.0 || kPercent > 1.0)
+		throw std::runtime_error("K percent must be in the range of 0 to 1");
 
 	std::vector<unsigned int> sortedIndices;
 	std::vector<unsigned int> selectedIndices;
@@ -30,6 +34,9 @@ std::shared_ptr<Generation> Generation::createNewGeneration(double mutationRate,
 		selectedIndices = fitnessProportionateSelection(selectionPercent);
 		break;
 	case TOURNAMENT_SELECTION:
+		selectedIndices = tournamentSelection(selectionPercent, kPercent);
+		break;
+	case PROBABILISTIC_TOURNAMENT_SELECTION:
 		// TODO: Implement
 		throw "Not Implemented";
 		break;
@@ -222,6 +229,41 @@ std::vector<unsigned int> Generation::fitnessProportionateSelection(double selec
 					break;
 				}
 		}
+	}
+
+	return selectedIndexes;
+}
+
+std::vector<unsigned int> Generation::tournamentSelection(double selectionPercent, double kPercent)
+{
+	unsigned int selectionNum = static_cast<unsigned int>(this->networks.size() * selectionPercent);
+	std::vector<unsigned int> selectedIndexes;
+	unsigned int k = static_cast<unsigned int>(this->networks.size() * kPercent);
+	std::vector<unsigned int> tournamentIndexes;
+
+	std::uniform_int_distribution<unsigned int> distribution(0, this->networks.size());
+	int si;
+
+	while (selectedIndexes.size() < selectionNum)
+	{
+		tournamentIndexes.clear();
+
+		for (int i = 0; i < k; i++)
+		{
+			si = distribution(NeuralNetwork::getGenerator());
+
+			if (std::find(selectedIndexes.begin(), selectedIndexes.end(), si) == selectedIndexes.end() && std::find(tournamentIndexes.begin(), tournamentIndexes.end(), si) == tournamentIndexes.end())
+				tournamentIndexes.push_back(si);
+			else
+				i--;
+		}
+
+		std::sort(tournamentIndexes.begin(), tournamentIndexes.end(), [this](unsigned int a, unsigned int b)
+		{
+			return this->networks[a]->getEvaluation() > this->networks[b]->getEvaluation();
+		});
+
+		selectedIndexes.push_back(tournamentIndexes[0]);
 	}
 
 	return selectedIndexes;
