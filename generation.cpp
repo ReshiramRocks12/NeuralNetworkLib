@@ -238,7 +238,7 @@ void Generation::tournamentSelection(double selectionPercent, double kPercent, d
 	std::vector<unsigned int> tournamentIndexes;
 	tournamentIndexes.reserve(k);
 
-	std::uniform_int_distribution<unsigned int> distribution1(0, this->networks.size());
+	std::uniform_int_distribution<unsigned int> distribution1(0, this->networks.size() - 1);
 	std::uniform_real_distribution<double> distribution2(0.0, 1.0);
 	int si;
 

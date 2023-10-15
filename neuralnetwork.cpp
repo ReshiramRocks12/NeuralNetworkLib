@@ -137,9 +137,6 @@ void NeuralNetwork::serialize(std::ofstream& outputStream)
 
 void NeuralNetwork::deserialize(const std::string& input)
 {
-	this->topology.clear();
-	this->layers.clear();
-
 	std::stringstream strStream(input);
 	int iToken;
 	unsigned int uiToken;
@@ -195,12 +192,12 @@ NeuralNetwork::Layer::Layer(unsigned int numberOfNeurons) : previousLayer(nullpt
 		this->neurons.push_back(std::make_shared<Neuron>());
 }
 
-NeuralNetwork::Layer::Layer(unsigned int numberOfNeurons, std::shared_ptr<Layer> previous, bool initalizeWeights)
+NeuralNetwork::Layer::Layer(unsigned int numberOfNeurons, std::shared_ptr<Layer> previous, bool initializeValues)
 {
 	this->neurons.reserve(numberOfNeurons);
 
 	for (unsigned int i = 0; i < numberOfNeurons; i++)
-		this->neurons.push_back(std::make_shared<Neuron>(previous->neurons.size(), initalizeWeights));
+		this->neurons.push_back(std::make_shared<Neuron>(previous->neurons.size(), initializeValues));
 
 	this->previousLayer = previous;
 }
@@ -238,7 +235,7 @@ std::vector<double> NeuralNetwork::Layer::getActivations(const std::vector<doubl
 
 NeuralNetwork::Neuron::Neuron() : bias(0.0) {}
 
-NeuralNetwork::Neuron::Neuron(unsigned int connectionsIn, bool initializeWeights)
+NeuralNetwork::Neuron::Neuron(unsigned int connectionsIn, bool initializeValues)
 {
 	// Xavier Weight Initialisation
 	std::uniform_real_distribution<double> distribution(0.0 - (1.0 / std::sqrt(connectionsIn)), 1.0 / std::sqrt(connectionsIn));
@@ -246,12 +243,12 @@ NeuralNetwork::Neuron::Neuron(unsigned int connectionsIn, bool initializeWeights
 	this->weightsIn.reserve(connectionsIn);
 
 	for (unsigned int i = 0; i < connectionsIn; i++)
-		if (initializeWeights)
+		if (initializeValues)
 			this->weightsIn.push_back(distribution(generator));
 		else
 			this->weightsIn.push_back(0.0);
 
-	if (initializeWeights)
+	if (initializeValues)
 		this->bias = distribution(generator);
 	else
 		this->bias = 0.0;

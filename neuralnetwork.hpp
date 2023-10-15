@@ -34,7 +34,7 @@ protected:
 	{
 	public:
 		Neuron();
-		Neuron(unsigned int connectionsIn, bool initializeWeights = true);
+		Neuron(unsigned int connectionsIn, bool initializeValues = true);
 		Neuron(const Neuron& neuron);
 
 		double getActivation(const std::vector<double>& inputs, NeuralNetwork::ActivationFunction activationFunc);
@@ -47,7 +47,7 @@ protected:
 	{
 	public:
 		Layer(unsigned int numberOfNeurons);
-		Layer(unsigned int numberOfNeurons, std::shared_ptr<Layer> previous, bool initalizeWeights = true);
+		Layer(unsigned int numberOfNeurons, std::shared_ptr<Layer> previous, bool initializeValues = true);
 		Layer(const Layer& layer);
 
 		std::vector<double> getActivations(const std::vector<double>& inputs, NeuralNetwork::ActivationFunction activationFunc);
@@ -60,12 +60,12 @@ private:
 	static std::mt19937& getGenerator();
 	static time_t& getSeed();
 	static void setSeed(const time_t& s);
+
 	void serialize(std::ofstream& outputStream);
 	void deserialize(const std::string& input);
 
 	std::vector<std::shared_ptr<Layer>> layers;
 	std::vector<unsigned int> topology;
-
 	double evaluation;
 	NeuralNetwork::ActivationFunction hiddenActivation;
 	NeuralNetwork::ActivationFunction outputActivation;

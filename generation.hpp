@@ -35,6 +35,7 @@ public:
 	
 	void serialize(const std::string& folder, bool sort = true);
 	void deserialize(const std::string& file);
+
 private:
 	void sortByEvaluation(std::vector<unsigned int>& sortedIndices);
 
