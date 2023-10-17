@@ -5,7 +5,7 @@
 time_t seed = std::time(NULL);
 std::mt19937 generator(static_cast<unsigned int>(seed));
 
-NeuralNetwork::NeuralNetwork() : topology({}), evaluation(0.0), hiddenActivation(NeuralNetwork::ActivationFunction::RELU_ACTIVATION), outputActivation(NeuralNetwork::ActivationFunction::SOFTMAX_ACTIVATION) {}
+NeuralNetwork::NeuralNetwork() : evaluation(0.0), hiddenActivation(NeuralNetwork::ActivationFunction::RELU_ACTIVATION), outputActivation(NeuralNetwork::ActivationFunction::SOFTMAX_ACTIVATION) {}
 
 NeuralNetwork::NeuralNetwork(const std::vector<unsigned int>& topology, NeuralNetwork::ActivationFunction hiddenActivation, NeuralNetwork::ActivationFunction outputActivation) : topology(topology), evaluation(0.0), hiddenActivation(hiddenActivation), outputActivation(outputActivation)
 {
@@ -86,7 +86,7 @@ void NeuralNetwork::mutate(double mutationRate, double mutationScale)
 		}
 }
 
-std::vector<double> NeuralNetwork::getOutput(std::vector<double> inputs)
+std::vector<double> NeuralNetwork::calculateOutput(std::vector<double> inputs)
 {
 	for (int i = 1; i < this->layers.size() - 1; i++)
 		inputs = this->layers[i]->getActivations(inputs, this->hiddenActivation);

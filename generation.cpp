@@ -113,6 +113,11 @@ std::vector<std::shared_ptr<NeuralNetwork>> Generation::getBatch(unsigned int ba
 	return std::vector<std::shared_ptr<NeuralNetwork>>(this->networks.begin() + (batchNum * batchSize), this->networks.begin() + ((batchNum + 1) * batchSize));
 }
 
+std::vector<std::shared_ptr<NeuralNetwork>> Generation::getAllNetworks()
+{
+	return this->networks;
+}
+
 void Generation::serialize(const std::string& folder, bool sort)
 {
 	if (this->networks.size() == 0)

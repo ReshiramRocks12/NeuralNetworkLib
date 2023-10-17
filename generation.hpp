@@ -32,6 +32,7 @@ public:
 		Generation::CrossoverAlgorithm crossoverAlgo = UNIFORM_CROSSOVER, double crossOverRate = 0.5, unsigned int kPoints = 0
 	);
 	std::vector<std::shared_ptr<NeuralNetwork>> getBatch(unsigned int batchNum);
+	std::vector<std::shared_ptr<NeuralNetwork>> getAllNetworks();
 	
 	void serialize(const std::string& folder, bool sort = true);
 	void deserialize(const std::string& file);

@@ -27,7 +27,7 @@ public:
 	NeuralNetwork::ActivationFunction getOutputActivation();
 
 	void mutate(double mutationRate = 0.2, double mutationScale = 0.5);
-	std::vector<double> getOutput(std::vector<double> inputs);
+	std::vector<double> calculateOutput(std::vector<double> inputs);
 
 protected:
 	class Neuron
