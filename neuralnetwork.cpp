@@ -262,16 +262,16 @@ NeuralNetwork::Neuron::Neuron(const Neuron& neuron)
 
 double NeuralNetwork::Neuron::getActivation(const std::vector<double>& inputs, NeuralNetwork::ActivationFunction activationFunc)
 {
+	if (this->weightsIn.size() != inputs.size())
+		throw std::runtime_error("Invalid number of inputs");
+
 	double activation = this->bias;
 
 	for (int i = 0; i < this->weightsIn.size(); i++)
-	{
-		if (this->weightsIn.size() != inputs.size())
-			throw std::runtime_error("Invalid number of inputs");
-
 		activation += this->weightsIn[i] * inputs[i];
-	}
 
+	if (activationFunc == HYPERBOLIC_TANGENT_ACTIVATION)
+		return std::tanh(activation);
 	if (activationFunc == RELU_ACTIVATION) // Rectified Linear Unit (ReLU) Activation
 		return std::fmax(0.0, activation);
 	if (activationFunc == SIGMOID_ACTIVATION) // Sigmoid Activation

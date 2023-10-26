@@ -33,6 +33,9 @@ public:
 	);
 	std::vector<std::shared_ptr<NeuralNetwork>> getBatch(unsigned int batchNum);
 	std::vector<std::shared_ptr<NeuralNetwork>> getAllNetworks();
+	unsigned int getBatchNum();
+	unsigned int getBatchSize();
+	unsigned int getGenerationNum();
 	
 	void serialize(const std::string& folder, bool sort = true);
 	void deserialize(const std::string& file);

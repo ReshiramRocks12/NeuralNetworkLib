@@ -11,6 +11,7 @@ class NeuralNetwork
 public:
 	enum ActivationFunction
 	{
+		HYPERBOLIC_TANGENT_ACTIVATION,
 		SIGMOID_ACTIVATION,
 		RELU_ACTIVATION,
 		SOFTMAX_ACTIVATION

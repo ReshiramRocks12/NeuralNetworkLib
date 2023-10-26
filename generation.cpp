@@ -68,10 +68,10 @@ std::shared_ptr<Generation> Generation::createNewGeneration(double mutationChanc
 	for (int i = 0; i < std::ceil(1.0 / selectionPercent); i++)
 		for (unsigned int index : selectedIndices)
 		{
-			generation->networks.push_back(std::make_shared<NeuralNetwork>(*this->networks[index]));
-
 			if (generation->networks.size() == this->networks.size())
 				break;
+
+			generation->networks.push_back(std::make_shared<NeuralNetwork>(*this->networks[index]));
 		}
 
 	std::shuffle(generation->networks.begin(), generation->networks.end(), NeuralNetwork::getGenerator());
@@ -105,7 +105,7 @@ std::vector<std::shared_ptr<NeuralNetwork>> Generation::getBatch(unsigned int ba
 	if (this->nBatches == 0)
 		return this->networks;
 
-	unsigned int batchSize = static_cast<unsigned int>(this->networks.size() / nBatches);
+	unsigned int batchSize = static_cast<unsigned int>(this->networks.size() / this->nBatches);
 
 	if ((static_cast<size_t>(batchNum + 2)) * batchSize > this->networks.size())
 		return std::vector<std::shared_ptr<NeuralNetwork>>(this->networks.begin() + (batchNum * batchSize), this->networks.end());
@@ -118,6 +118,21 @@ std::vector<std::shared_ptr<NeuralNetwork>> Generation::getAllNetworks()
 	return this->networks;
 }
 
+unsigned int Generation::getBatchNum()
+{
+	return this->nBatches;
+}
+
+unsigned int Generation::getBatchSize()
+{
+	return static_cast<unsigned int>(this->networks.size() / this->nBatches);
+}
+
+unsigned int Generation::getGenerationNum()
+{
+	return this->generationNum;
+}
+
 void Generation::serialize(const std::string& folder, bool sort)
 {
 	if (this->networks.size() == 0)
@@ -128,26 +143,20 @@ void Generation::serialize(const std::string& folder, bool sort)
 	if (!outputStream.good())
 		throw std::runtime_error("An error occured while opening the file");
 
-	std::vector<unsigned int> sortedIndices;
+	std::vector<unsigned int> outIndices(this->networks.size());
+	std::iota(outIndices.begin(), outIndices.end(), 0);
 
 	if (sort)
-		this->sortByEvaluation(sortedIndices);
-	
+		this->sortByEvaluation(outIndices);
+
 	outputStream << std::setprecision(17);
 	outputStream << this->generationNum << " " << this->networks.size() << " " << this->nBatches << " " << (NeuralNetwork::getSeed() - this->generationNum) << std::endl;
 
-	if (sortedIndices.size() > 0)
-		for (int i = 0; i < sortedIndices.size(); i++)
-		{
-			outputStream << sortedIndices[i] << " ";
-			this->networks[sortedIndices[i]]->serialize(outputStream);
-		}
-	else
-		for (int i = 0; i < this->networks.size(); i++)
-		{
-			outputStream << i << " ";
-			this->networks[i]->serialize(outputStream);
-		}
+	for (int i = 0; i < outIndices.size(); i++)
+	{
+		outputStream << outIndices[i] << " ";
+		this->networks[outIndices[i]]->serialize(outputStream);
+	}
 
 	outputStream.close();
 }
@@ -210,11 +219,20 @@ void Generation::sortByEvaluation(std::vector<unsigned int>& sorted)
 void Generation::fitnessProportionateSelection(double selectionPercent, std::vector<unsigned int>& selectedIndexes)
 {
 	unsigned int selectionNum = static_cast<unsigned int>(this->networks.size() * selectionPercent);
-	double totalEval = 0.0;
+
+	std::vector<double> evaluations;
+	evaluations.reserve(this->networks.size());
 
 	for (std::shared_ptr<NeuralNetwork>& network : this->networks)
-		totalEval += network->getEvaluation();
+		evaluations.push_back(network->getEvaluation());
 
+	double min = *std::min_element(evaluations.begin(), evaluations.end());
+
+	if (min < 0.0)
+		for (int i = 0; i < evaluations.size(); i++)
+			evaluations[i] -= min;
+
+	double totalEval = std::accumulate(evaluations.begin(), evaluations.end(), 0.0);
 	double selectionEval;
 	std::uniform_real_distribution<double> distribution(0.0, totalEval);
 
@@ -224,7 +242,7 @@ void Generation::fitnessProportionateSelection(double selectionPercent, std::vec
 		
 		for (int i = 0; i < this->networks.size(); i++)
 		{
-			selectionEval -= this->networks[i]->getEvaluation();
+			selectionEval -= evaluations[i];
 
 			if (selectionEval <= 0.0)
 				if (std::find(selectedIndexes.begin(), selectedIndexes.end(), i) == selectedIndexes.end())
